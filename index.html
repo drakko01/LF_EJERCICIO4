@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src=" https://unpkg.com/leaflet@1.6.0/dist/leaflet.js "></script>
+
+    <link rel="stylesheet" href=" https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+    <!---GeoJson-->
+    <script type="text/javascript" src="ciudades.js"></script>
+    <script type="text/javascript" src="paises.js"></script>
+    <script type="text/javascript" src="departamento.js"></script>
+
+    <title>Ejercicio5</title>
+    <style>
+        #map {
+            width: 100%;
+            height: 600px;
+            box-shadow: 5px 5px 5px #888;
+        }
+
+        .info {
+            padding: 20px 20px;
+            font: 16px/18px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 15px rgb(255, 0, 0);
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .info h2 {
+            margin: 0 0 5px;
+            color: rgb(255, 0, 0);
+        }
+
+        .legend {
+            opacity: 0.7;
+        }
+    </style>
+
+    <script>
+        var countryStyle = {
+            'color': "#e12a2a",
+            'weight': 2,
+            'opacity': 0.6
+        };
+        //funcion asignadora de los colores segun el atributo d
+
+
+        function getColor(d) {
+            return d > 100000000 ? '#800026' :
+                d > 50000000 ? '#BD0026' :
+                    d > 20000000 ? '#E31A1C' :
+                        d > 10000000 ? '#FC4E2A' :
+                            d > 5000000 ? '#FD8D3C' :
+                                d > 2000000 ? '#FEB24C' :
+                                    d > 1000000 ? '#FED976' :
+                                        '#FFEDA0';
+        };
+         //funcion para asignar los colores, importar abajo
+         function style(feature) {
+            return {
+                //acceder a el feature, propiedades, atributo poblacion
+                fillColor: getColor(feature.properties.pop_est),
+                weight: 2,
+                opacity: 1,
+                //color linea separadora en los paises
+                color: 'white',
+                dashArray: '3',
+                fillOpacity: 0.7
+            };
+        }
+
+        function getColordepa(d) {
+            return d > 100000000000 ? '#131f12' :
+                d > 50000000000 ? '#23491f' :
+                    d > 20000000000 ? '#3b7735' :
+                        d > 10000000000 ? '#5cb052' :
+                            d > 5000000000 ? '#72ce66' :
+                                d > 2000000000 ? '#99f18d' :
+                                    d > 1000000000 ? '#c5ebbf' :
+                                        '#def8d9';
+        };
+
+         //funcion para asignar los colores, importar abajo
+         function styledepa(feature) {
+            return {
+                //acceder a el feature, propiedades, atributo poblacion
+                fillColor: getColordepa(feature.properties.SHAPE_AREA),
+                weight: 2,
+                opacity: 1,
+                //color linea separadora en los paises
+                color: 'white',
+                dashArray: '3',
+                fillOpacity: 0.7
+            };
+        }
+
+       
+
+
+        // PARA LAS ciudades
+
+
+        function getColorCity(d) {
+            if (d == "S") {
+                d = "YELLOW";
+            } else if (d == "N") {
+                d = "GREEN";
+            } else {
+                d = "WHITE";
+            }
+            return d;
+        };
+
+
+        function pointToLayer(feature, latlng) {
+            return L.circleMarker(latlng, {
+                // Stroke properties
+                color: 'BLACK',
+                opacity: 0.75,
+                weight: 1,
+
+                // Fill properties
+                fillColor: getColorCity(feature.properties.CAPITAL),
+                fillOpacity: 0.6,
+
+                radius: 3.2
+            });
+        }
+
+        function popupCity(feature, layer) {
+            if (feature.properties && feature.properties.CIUDAD) {
+                layer.bindPopup(feature.properties.CIUDAD);
+            }
+        }
+
+
+        function popup(feature, layer) {
+            if (feature.properties && feature.properties.name) {
+                layer.bindPopup(feature.properties.name);
+            }
+        }
+        function popupdepa(feature, layer) {
+            if (feature.properties && feature.properties.COD_DANE) {
+                layer.bindPopup(feature.properties.COD_DANE);
+            }
+        }
+
+
+    </script>
+</head>
+
+<body>
+
+
+    <div id='map'>
+
+    </div>
+
+    <script>
+        //L.tilelayer sirve para llamar capas de otro servidor
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a>'
+                + 'contributors',
+            maxZoom: 18
+        });
+
+
+
+        //el 'map' es el id del div donde se mostrara el mapa
+        var map = L.map('map', {
+            //coordenadas decimanles donde se abrira el mapa
+            center: [41.66, -4.72],
+            //zona bastante grande
+            zoom: 3,
+            //llamo la capa base 
+            layers: osm,
+            //para con la ruedita del maouse acercarse o alejarse
+            scrollWheelZoom: true,
+        });
+        //-----GeoJson
+
+
+
+        L.geoJson(paises, {
+            //funcion de colores
+            style: style
+        }).addTo(map);
+        //para agregar la funcion del popup al mapa
+        geojson = L.geoJson(paises, {
+            style: style,
+            onEachFeature: popup
+        }).addTo(map);
+
+        L.geoJson(departamento, {
+            style: styledepa,
+            onEachFeature: popupdepa
+        }).addTo(map);
+
+        L.control.scale().addTo(map);
+
+        L.geoJson(ciudades,
+            {
+                pointToLayer: pointToLayer,
+                onEachFeature: popupCity
+            }).addTo(map)
+
+        var title = L.control();
+        title.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info');
+            div.innerHTML +=
+                '<h2>Paises por cantidad de</h2>'; return div;
+        };
+        title.addTo(map);
+    </script>
+</body>
+
+</html>

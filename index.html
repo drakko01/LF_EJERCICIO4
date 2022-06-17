@@ -14,6 +14,18 @@
     <script type="text/javascript" src="paises.js"></script>
     <script type="text/javascript" src="departamento.js"></script>
 
+    <!---Marker clustering-->
+
+    <link rel="stylesheet" href="./dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="./dist/MarkerCluster.Default.css" />
+    <script src="./dist/leaflet.markercluster-src.js"></script>
+    <script src="./dist/leaflet.markercluster.js"></script>
+
+    <!---Minimap-->
+    <link rel="stylesheet" type="text/css" href="./Leaflet-MiniMap-master/dist/Control.MiniMap.min.css" />
+    <script src="./Leaflet-MiniMap-master/dist/Control.MiniMap.min.js"></script>
+
+
     <title>Ejercicio5</title>
     <style>
         #map {
@@ -61,8 +73,8 @@
                                     d > 1000000 ? '#FED976' :
                                         '#FFEDA0';
         };
-         //funcion para asignar los colores, importar abajo
-         function style(feature) {
+        //funcion para asignar los colores, importar abajo
+        function style(feature) {
             return {
                 //acceder a el feature, propiedades, atributo poblacion
                 fillColor: getColor(feature.properties.pop_est),
@@ -76,18 +88,18 @@
         }
 
         function getColordepa(d) {
-            return d > 100000000000 ? '#131f12' :
-                d > 50000000000 ? '#23491f' :
-                    d > 20000000000 ? '#3b7735' :
-                        d > 10000000000 ? '#5cb052' :
-                            d > 5000000000 ? '#72ce66' :
-                                d > 2000000000 ? '#99f18d' :
-                                    d > 1000000000 ? '#c5ebbf' :
-                                        '#def8d9';
+            return d > 100000000000 ? '#00ff00' :
+                d > 50000000000 ? '#00da00' :
+                    d > 20000000000 ? '#00b500' :
+                        d > 10000000000 ? '#009000' :
+                            d > 5000000000 ? '#006b00' :
+                                d > 2000000000 ? '#004600' :
+                                    d > 1000000000 ? '#002800' :
+                                        '#001400';
         };
 
-         //funcion para asignar los colores, importar abajo
-         function styledepa(feature) {
+        //funcion para asignar los colores, importar abajo
+        function styledepa(feature) {
             return {
                 //acceder a el feature, propiedades, atributo poblacion
                 fillColor: getColordepa(feature.properties.SHAPE_AREA),
@@ -100,7 +112,7 @@
             };
         }
 
-       
+
 
 
         // PARA LAS ciudades
@@ -119,7 +131,7 @@
 
 
         function pointToLayer(feature, latlng) {
-            return L.circleMarker(latlng, {
+            return markers.addLayer(L.circleMarker(latlng, {
                 // Stroke properties
                 color: 'BLACK',
                 opacity: 0.75,
@@ -129,8 +141,8 @@
                 fillColor: getColorCity(feature.properties.CAPITAL),
                 fillOpacity: 0.6,
 
-                radius: 3.2
-            });
+                radius: 8
+            }));
         }
 
         function popupCity(feature, layer) {
@@ -142,12 +154,12 @@
 
         function popup(feature, layer) {
             if (feature.properties && feature.properties.name) {
-                layer.bindPopup(feature.properties.name);
+                layer.bindPopup("<strong>País: </strong>"+feature.properties.name);
             }
         }
         function popupdepa(feature, layer) {
             if (feature.properties && feature.properties.COD_DANE) {
-                layer.bindPopup(feature.properties.COD_DANE);
+                layer.bindPopup("<strong>Cod Dane: </strong>"+feature.properties.COD_DANE);
             }
         }
 
@@ -170,6 +182,11 @@
             maxZoom: 18
         });
 
+        var google = L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga', {
+            attribution: '&copy; <a href="google.com">OpenStreetMapGOOGLE</a>'
+                + 'contributors',
+            maxZoom: 18
+        });
 
 
         //el 'map' es el id del div donde se mostrara el mapa
@@ -179,36 +196,46 @@
             //zona bastante grande
             zoom: 3,
             //llamo la capa base 
-            layers: osm,
+            layers: osm, google,
             //para con la ruedita del maouse acercarse o alejarse
             scrollWheelZoom: true,
         });
+
+        const markers = L.markerClusterGroup();
+
         //-----GeoJson
 
+        var baseMaps = {
+            "OpenStreetMap": osm,
+            "GoogleSatellite": google
+        };
 
-
-        L.geoJson(paises, {
-            //funcion de colores
-            style: style
-        }).addTo(map);
-        //para agregar la funcion del popup al mapa
-        geojson = L.geoJson(paises, {
+        var paises = L.geoJson(paises, {
             style: style,
             onEachFeature: popup
         }).addTo(map);
 
-        L.geoJson(departamento, {
+        var departamentos = L.geoJson(departamento, {
             style: styledepa,
             onEachFeature: popupdepa
-        }).addTo(map);
+        })
 
-        L.control.scale().addTo(map);
+       
 
-        L.geoJson(ciudades,
-            {
+        var ciudades = L.geoJson(ciudades, {
                 pointToLayer: pointToLayer,
                 onEachFeature: popupCity
-            }).addTo(map)
+        })
+
+        var overlayMaps = {
+            "Paises": paises,
+            "Departamentos": departamentos,
+            "Ciudades": ciudades
+            
+        };
+
+        
+        map.addLayer(markers);
 
         var title = L.control();
         title.onAdd = function (map) {
@@ -217,6 +244,23 @@
                 '<h2>Paises por cantidad de</h2>'; return div;
         };
         title.addTo(map);
+
+        L.control.layers(baseMaps, overlayMaps).addTo(map);
+      
+
+        var carto_light = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '©OpenStreetMap, ©CartoDB', subdomains: 'abcd', maxZoom: 24 });
+
+        // Agregar plugin MiniMap
+        var minimap = new L.Control.MiniMap(carto_light,
+            {
+                toggleDisplay: true,
+                minimized: false,
+                position: "bottomleft"
+            }).addTo(map);
+
+        L.control.scale({imperial: false}).addTo(map);
+     
+
     </script>
 </body>
 
